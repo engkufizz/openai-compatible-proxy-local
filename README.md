@@ -1,4 +1,4 @@
-# LM Studio – Excel-to-AI Analyzer
+# LM Studio – Excel to AI Analyzer
 
 ## Overview
 
