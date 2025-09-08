@@ -1,7 +1,5 @@
 # LM Studio – Excel to AI Analyzer
 
-## Overview
-
 This project lets you run AI prompts over rows in an Excel file using a local model served by **LM Studio**.
 
 * You supply a **prompt template** that can reference any Excel column via `{{Column Name}}` placeholders.
