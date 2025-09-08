@@ -1,9 +1,3 @@
-👉 **“LM Studio – Excel-to-AI Analyzer”**
-
-That way it sounds more purposeful and less generic. Here’s the updated **README.md** with that title and consistent wording:
-
----
-
 # LM Studio – Excel-to-AI Analyzer
 
 ## Overview
