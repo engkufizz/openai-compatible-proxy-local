@@ -1,43 +1,50 @@
-# LM Studio Local LLM – Excel “Prolong Factor” Analyser
+👉 **“LM Studio – Excel-to-AI Analyzer”**
 
-This project helps you classify **prolong factors** from ticket remarks using a local LLM served by **LM Studio**.  
-
-You have two ways to connect:
-
-- **Option A (recommended):** Call LM Studio’s built-in OpenAI-compatible API directly from the Excel script.  
-- **Option B (optional):** Run a tiny local proxy that forwards OpenAI-style requests to LM Studio, so your tools can use a stable `http://localhost:8000/v1` endpoint.  
-
-Both options will produce an output Excel file with a new **“Prolong Factor”** column.
+That way it sounds more purposeful and less generic. Here’s the updated **README.md** with that title and consistent wording:
 
 ---
 
-## 📂 Repository Contents
+# LM Studio – Excel-to-AI Analyzer
 
-- `integrate_ai_lmstudio.py` — Excel processing script that calls LM Studio directly.  
-- `lmstudio_openai_proxy.py` — Minimal OpenAI-compatible proxy that forwards to LM Studio.  
+## Overview
 
----
+This project lets you run AI prompts over rows in an Excel file using a local model served by **LM Studio**.
 
-## ✅ Prerequisites
+* You supply a **prompt template** that can reference any Excel column via `{{Column Name}}` placeholders.
+* The script writes the AI’s reply to an output column in a new Excel file.
 
-- **LM Studio** installed, with a suitable **instruct model** downloaded and loaded  
-  (e.g., *Llama 3.x Instruct*, 7–8B quantised Q4/Q5).  
-- **Python 3.9+** recommended.  
-- Input Excel file named **`Testing.xlsx`** with these columns:
-  - `Activity Export` *(required)*  
-  - `Activity Export WO 1` *(optional)*  
+### Two integration options
+
+* **Option A (recommended):** Call LM Studio directly.
+* **Option B (optional):** Use a small local proxy that forwards OpenAI-style calls to LM Studio (`http://localhost:8000/v1`).
 
 ---
 
-## 📦 Install Python Dependencies
+## Files
 
-If you only use **Option A** (direct):  
+* `excel_ai_analyzer.py` — Excel-to-AI analyzer that talks to LM Studio’s local API.
+* `lmstudio_openai_proxy.py` — Optional proxy that forwards to LM Studio.
+
+---
+
+## Prerequisites
+
+* **LM Studio** installed, with an **instruct model** loaded
+  (e.g., Llama 3.x Instruct, 7–8B quantised Q4/Q5 for speed).
+* Python 3.9+ recommended.
+* An input Excel file (default: `Testing.xlsx`).
+
+---
+
+## Install Python dependencies
+
+**Option A only:**
 
 ```bash
 pip install requests pandas openpyxl
-````
+```
 
-If you may also use **Option B** (proxy):
+**Option B (proxy) as well:**
 
 ```bash
 pip install requests pandas openpyxl fastapi uvicorn
@@ -45,31 +52,25 @@ pip install requests pandas openpyxl fastapi uvicorn
 
 ---
 
-## ▶️ Start LM Studio’s Local Server
+## Start LM Studio’s local server
 
-1. Open **LM Studio**.
+1. Open LM Studio.
 2. Load your chosen model.
-3. Open **Local Server (OpenAI API compatible)** panel.
+3. Open the **Local Server (OpenAI-compatible)** panel.
 4. Set a port (e.g., `1234`) and enable the server.
 
-* Default base URL: `http://localhost:1234`
-* API root: `http://localhost:1234/v1`
-* API key: optional (if enabled, keep it handy, e.g., `lm-studio-key`).
+   * Base URL: `http://localhost:1234`
+   * API root: `http://localhost:1234/v1`
+5. API key is optional. If enabled, note it (e.g., `lm-studio-key`).
 
-### Quick Tests
+### Quick test
 
-* List models:
-
-  ```bash
-  curl http://localhost:1234/v1/models
-  ```
-* Simple chat:
-
-  ```bash
-  curl -s http://localhost:1234/v1/chat/completions \
-    -H "Content-Type: application/json" \
-    -d '{"model":"local","messages":[{"role":"user","content":"Hello"}]}'
-  ```
+```bash
+curl http://localhost:1234/v1/models
+curl -s http://localhost:1234/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -d '{"model":"local","messages":[{"role":"user","content":"Hello"}]}'
+```
 
 If you enabled an API key, add:
 
@@ -79,95 +80,117 @@ If you enabled an API key, add:
 
 ---
 
-## 🔹 Option A: Direct Connection (Recommended)
+## Option A: Direct connection (recommended)
 
-The Excel script calls LM Studio’s API directly. This is the **simplest setup**.
+Use `excel_ai_analyzer.py` to run a prompt over your Excel rows.
 
-### Configuration
+### Key features
 
-Override defaults using environment variables:
+* **Templating** with `{{Column Name}}` placeholders.
+* Optional defaults: `{{Column Name|default text}}`.
+* Use `{{row_json}}` to include the entire row as JSON.
+* **Caching** identical prompts within a run.
+* Optional concurrency for speed.
+* Configurable **system prompt, temperature, top\_p, max tokens**.
 
-| Variable            | Default                 |
-| ------------------- | ----------------------- |
-| `LMSTUDIO_API_BASE` | `http://localhost:1234` |
-| `LMSTUDIO_API_KEY`  | *(empty)*               |
-| `LMSTUDIO_MODEL`    | `local`                 |
-| `IN_FILE`           | `Testing.xlsx`          |
-| `OUT_FILE`          | `Testing_output.xlsx`   |
-| `SOURCE_COL`        | `Activity Export`       |
-| `WO1_COL`           | `Activity Export WO 1`  |
-| `TARGET_COL`        | `Prolong Factor`        |
+### Configuration (environment variables)
 
-**Examples:**
+| Variable               | Default                          | Description                       |
+| ---------------------- | -------------------------------- | --------------------------------- |
+| `LMSTUDIO_API_BASE`    | `http://localhost:1234`          | API base URL                      |
+| `LMSTUDIO_API_KEY`     | *(empty)*                        | API key if enabled                |
+| `LMSTUDIO_MODEL`       | `local`                          | Model name                        |
+| `IN_FILE`              | `Testing.xlsx`                   | Input Excel file                  |
+| `OUT_FILE`             | `Testing_output.xlsx`            | Output Excel file                 |
+| `SHEET_NAME`           | first sheet                      | Target sheet                      |
+| `OUTPUT_COL`           | `AI Output`                      | Column to write results           |
+| `SYSTEM_PROMPT`        | `You are a helpful assistant...` | System prompt                     |
+| `USER_PROMPT_TEMPLATE` | *(required)*                     | User prompt template              |
+| `TEMPERATURE`          | `0.0`                            | Sampling temperature              |
+| `TOP_P`                | `1.0`                            | Nucleus sampling                  |
+| `MAX_TOKENS`           | `512`                            | Max output tokens                 |
+| `WORKERS`              | `1`                              | Concurrency                       |
+| `TRIM_TO_WORDS`        | `0`                              | Limit output words (0 = disabled) |
 
-* **Bash**
+### Examples
+
+* **Classification**
 
   ```bash
-  export LMSTUDIO_API_BASE="http://localhost:1234"
-  export LMSTUDIO_API_KEY="lm-studio-key"
+  export USER_PROMPT_TEMPLATE="Return only one label from [Bug, Inquiry, Task]. Text: {{Description}}"
   ```
-* **PowerShell**
+* **Summarisation**
 
-  ```powershell
-  $env:LMSTUDIO_API_BASE = "http://localhost:1234"
-  $env:LMSTUDIO_API_KEY = "lm-studio-key"
+  ```bash
+  export USER_PROMPT_TEMPLATE="Summarise the following in 3 bullet points:\n\n{{Ticket Details}}"
+  ```
+* **Extraction to JSON**
+
+  ```bash
+  export USER_PROMPT_TEMPLATE="Extract site_id and outage_start from the text. Reply as JSON with keys site_id and outage_start. Text: {{Remarks}}"
+  ```
+* **Multi-field JSON**
+
+  ```bash
+  export USER_PROMPT_TEMPLATE="Given the row: {{row_json}}, return a JSON with keys cause, severity, owner. Be concise."
   ```
 
-### Run
+### Run (direct)
+
+**Bash**
 
 ```bash
-python integrate_ai_lmstudio.py
+export LMSTUDIO_API_BASE="http://localhost:1234"
+export USER_PROMPT_TEMPLATE="Summarise: {{Activity Export}}"
+python excel_ai_analyzer.py
 ```
 
-* Place `Testing.xlsx` next to the script.
-* The script will create `Testing_output.xlsx` with a new **Prolong Factor** column.
+**PowerShell**
 
-### What the Script Does
+```powershell
+$env:LMSTUDIO_API_BASE = "http://localhost:1234"
+$env:USER_PROMPT_TEMPLATE = "Summarise: {{Activity Export}}"
+python excel_ai_analyzer.py
+```
 
-* Reads `Activity Export` and `Activity Export WO 1` (if present).
-* Normalises Unicode punctuation and whitespace.
-* Prompts the local model to output a concise **prolong factor** (≤ 5 words).
-* Caches repeated remarks within the same run.
-* Writes results to the output file.
+The script writes `OUT_FILE` with a new `OUTPUT_COL` containing AI results.
 
 ---
 
-## 🔹 Option B: Local OpenAI-Compatible Proxy (Optional)
+## Tips
 
-Run a lightweight proxy that forwards OpenAI requests to LM Studio.
-Useful if you want a **stable endpoint** like `http://localhost:8000/v1`.
+* Start with a **small sample** to verify outputs.
+* For faster runs:
 
-### Configuration
+  * Use a **smaller quantised model**.
+  * Increase `WORKERS` to 2–4 (depends on machine).
+* Keep **temperature low (0–0.3)** for deterministic tasks.
 
-| Variable                    | Default                    |
-| --------------------------- | -------------------------- |
-| `LMSTUDIO_API_BASE`         | `http://localhost:1234/v1` |
-| `LMSTUDIO_API_KEY`          | *(empty)*                  |
-| `LMSTUDIO_PROXY_MODEL_NAME` | `lmstudio-proxy`           |
-| `PROXY_TIMEOUT`             | `300`                      |
+---
 
-**Examples:**
+## Option B: Local proxy (stable endpoint)
 
-* **Bash**
+Run a small proxy so your tools can always call `http://localhost:8000/v1` regardless of LM Studio port.
 
-  ```bash
-  export LMSTUDIO_API_BASE="http://localhost:1234/v1"
-  export LMSTUDIO_API_KEY="lm-studio-key"
-  ```
-* **PowerShell**
+### Run the proxy
 
-  ```powershell
-  $env:LMSTUDIO_API_BASE = "http://localhost:1234/v1"
-  $env:LMSTUDIO_API_KEY = "lm-studio-key"
-  ```
-
-### Run the Proxy
+**Bash**
 
 ```bash
+export LMSTUDIO_API_BASE="http://localhost:1234/v1"
+export LMSTUDIO_API_KEY="lm-studio-key"    # only if enabled
 uvicorn lmstudio_openai_proxy:app --host 0.0.0.0 --port 8000
 ```
 
-### Test the Proxy
+**PowerShell**
+
+```powershell
+$env:LMSTUDIO_API_BASE = "http://localhost:1234/v1"
+$env:LMSTUDIO_API_KEY = "lm-studio-key"
+uvicorn lmstudio_openai_proxy:app --host 0.0.0.0 --port 8000
+```
+
+### Test
 
 ```bash
 curl http://localhost:8000/v1/models
@@ -176,70 +199,27 @@ curl -s http://localhost:8000/v1/chat/completions \
   -d '{"model":"local","messages":[{"role":"user","content":"Hi"}]}'
 ```
 
-* Base URL: `http://localhost:8000`
-* API path: `/v1`
-
-If your client expects an API key, you can pass any placeholder.
-The proxy forwards the real key if set via `LMSTUDIO_API_KEY`.
-
----
-
-## 📊 Input & Output
-
-* **Input file:** `Testing.xlsx`
-* **Required column:** `Activity Export`
-* **Optional column:** `Activity Export WO 1`
-* **Output file:** `Testing_output.xlsx`
-* **New column added:** `Prolong Factor`
-
-If `Activity Export WO 1` is missing, the script will still run using `Activity Export` only.
-
----
-
-## 🧪 Quick Smoke Tests
-
-**Python direct call:**
+Use with `excel_ai_analyzer.py`:
 
 ```bash
-python -c "import os,requests;os.environ['LMSTUDIO_API_BASE']='http://localhost:1234';print(requests.post(f\"{os.environ['LMSTUDIO_API_BASE'].rstrip('/')}/v1/chat/completions\", json={'model':'local','messages':[{'role':'user','content':'Return only one of: Power failure, Fibre cut, Access issue, or Insufficient information. Remarks: site down due to TNB outage'}]}).json())"
-```
-
-**Curl direct call:**
-
-```bash
-curl -s http://localhost:1234/v1/chat/completions \
-  -H "Content-Type: application/json" \
-  -d '{"model":"local","messages":[{"role":"user","content":"Return only one of: Power failure, Fibre cut, Access issue, or Insufficient information. Remarks: site down due to TNB outage"}]}'
+export LMSTUDIO_API_BASE="http://localhost:8000"
 ```
 
 ---
 
-## 💡 Tips & Best Practices
+## Troubleshooting
 
-* Use **`temperature=0`** for deterministic classification.
-* Prefer smaller quantised models (e.g., 7–8B Q4/Q5) for speed; scale up later if needed.
-* Increase HTTP timeouts to **180–300s** for larger models.
-* Keep caching enabled (already in script).
-* Start with a small sample (e.g., 10 rows) before processing the full sheet.
-
----
-
-## 🛠️ Troubleshooting
-
-* **404 / connection refused** → Check LM Studio’s server is running with the right port.
-* **401 unauthorised** → Set `LMSTUDIO_API_KEY` if LM Studio’s key is enabled.
-* **KeyError: 'Activity Export'** → Ensure your Excel file has the correct column names (or override via env vars).
-* **Slow responses / timeouts** → Use a smaller model or increase timeouts.
-* **Garbled / verbose outputs** → The script enforces concise ASCII (≤ 5 words). Adjust prompt if needed.
+* **Connection refused/404** → Check LM Studio local server is running and port is correct.
+* **401 unauthorised** → Set `LMSTUDIO_API_KEY` if enabled.
+* **Excel column not found** → Check column names / placeholders.
+* **Slow or timeout** → Use a smaller model, increase timeouts, or reduce `WORKERS`.
+* **Outputs too long** → Set `TRIM_TO_WORDS` or adjust prompt.
 
 ---
 
-## ⚙️ Customisation
+## Customisation ideas
 
-* Override column names and file paths via environment variables.
-* Add concurrency (e.g., `concurrent.futures`) for faster batch processing.
-* Use a fixed label set by:
-
-  * Constraining the prompt, or
-  * Post-filtering free-text into canonical categories.
+* **Multiple outputs** → Craft prompt returning JSON, store it in `OUTPUT_COL`, optionally parse later.
+* **Guardrails** → Add regex checks or post-process results.
+* **Batch prompts** → Add a context prefix if many rows share info.
 
