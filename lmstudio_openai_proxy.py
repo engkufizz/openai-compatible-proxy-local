@@ -1,8 +1,9 @@
 import os
 import time
 import uuid
-import requests
 from typing import Dict, Any
+
+import requests
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse, StreamingResponse
 
@@ -36,6 +37,7 @@ def list_models():
         r = s.get(f"{LMSTUDIO_API_BASE}/models", timeout=30)
         r.raise_for_status()
         data = r.json()
+        # Ensure a sane structure even if upstream changes
         if not isinstance(data, dict) or "data" not in data:
             data = {"object": "list", "data": [{"id": MODEL_NAME, "object": "model", "created": int(time.time())}]}
         return JSONResponse(content=data)
@@ -46,6 +48,10 @@ def list_models():
 
 @app.post("/v1/chat/completions")
 def chat_completions(body: Dict[str, Any]):
+    """
+    Pass-through for OpenAI-style chat completions.
+    Supports both streamed and non-streamed responses.
+    """
     want_stream = bool(body.get("stream", False))
     s = _session()
     url = f"{LMSTUDIO_API_BASE}/chat/completions"
@@ -65,6 +71,7 @@ def chat_completions(body: Dict[str, Any]):
             r = s.post(url, json=body, timeout=TIMEOUT)
             r.raise_for_status()
             j = r.json()
+            # Normalise minimal fields if missing
             if isinstance(j, dict):
                 j.setdefault("id", f"chatcmpl-{uuid.uuid4().hex[:24]}")
                 j.setdefault("model", MODEL_NAME)
