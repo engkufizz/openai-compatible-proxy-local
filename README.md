@@ -18,6 +18,8 @@ This project lets you run AI prompts over rows in an Excel file using a local mo
 
 * `excel_ai_analyzer.py` — Excel-to-AI analyzer that talks to LM Studio’s local API.
 * `lmstudio_openai_proxy.py` — Optional proxy that forwards to LM Studio.
+* `chat_cli.py` — Minimal non-streaming CLI (direct API calls).
+* `chat_stream.py` — Minimal streaming CLI (token-by-token).
 
 ---
 
@@ -106,48 +108,124 @@ Use `excel_ai_analyzer.py` to run a prompt over your Excel rows.
 | `WORKERS`              | `1`                              | Concurrency                       |
 | `TRIM_TO_WORDS`        | `0`                              | Limit output words (0 = disabled) |
 
-### Examples
+---
 
-* **Classification**
+## Run (two ways)
 
-  ```bash
-  export USER_PROMPT_TEMPLATE="Return only one label from [Bug, Inquiry, Task]. Text: {{Description}}"
-  ```
-* **Summarisation**
+You can run the analyzer in **two ways**:
 
-  ```bash
-  export USER_PROMPT_TEMPLATE="Summarise the following in 3 bullet points:\n\n{{Ticket Details}}"
-  ```
-* **Extraction to JSON**
-
-  ```bash
-  export USER_PROMPT_TEMPLATE="Extract site_id and outage_start from the text. Reply as JSON with keys site_id and outage_start. Text: {{Remarks}}"
-  ```
-* **Multi-field JSON**
-
-  ```bash
-  export USER_PROMPT_TEMPLATE="Given the row: {{row_json}}, return a JSON with keys cause, severity, owner. Be concise."
-  ```
-
-### Run (direct)
+### 1. With environment variables (recommended for repeat runs)
 
 **Bash**
 
 ```bash
-export LMSTUDIO_API_BASE="http://localhost:1234"
+export IN_FILE="Testing.xlsx"
+export OUT_FILE="Testing_output.xlsx"
 export USER_PROMPT_TEMPLATE="Summarise: {{Activity Export}}"
+export LMSTUDIO_API_BASE="http://localhost:1234"
+
 python excel_ai_analyzer.py
 ```
 
 **PowerShell**
 
 ```powershell
-$env:LMSTUDIO_API_BASE = "http://localhost:1234"
+$env:IN_FILE = "Testing.xlsx"
+$env:OUT_FILE = "Testing_output.xlsx"
 $env:USER_PROMPT_TEMPLATE = "Summarise: {{Activity Export}}"
+$env:LMSTUDIO_API_BASE = "http://localhost:1234"
+
 python excel_ai_analyzer.py
 ```
 
-The script writes `OUT_FILE` with a new `OUTPUT_COL` containing AI results.
+---
+
+### 2. Direct Python call (quick ad-hoc run)
+
+Instead of setting env vars, you can pass arguments directly:
+
+```bash
+python excel_ai_analyzer.py \
+  --in-file "Testing.xlsx" \
+  --out-file "Testing_output.xlsx" \
+  --sheet "Sheet1" \
+  --output-col "AI Output" \
+  --prompt "Summarise: {{Activity Export}}" \
+  --api-base "http://localhost:1234" \
+  --model "local" \
+  --temperature 0.0 \
+  --top-p 1.0 \
+  --max-tokens 512
+```
+
+---
+
+## Prompt examples
+
+* **Classification**
+
+  ```bash
+  export USER_PROMPT_TEMPLATE="Return only one label from [Bug, Inquiry, Task]. Text: {{Description}}"
+  ```
+
+* **Summarisation**
+
+  ```bash
+  export USER_PROMPT_TEMPLATE="Summarise the following in 3 bullet points:\n\n{{Ticket Details}}"
+  ```
+
+* **Extraction to JSON**
+
+  ```bash
+  export USER_PROMPT_TEMPLATE="Extract site_id and outage_start from the text. Reply as JSON with keys site_id and outage_start. Text: {{Remarks}}"
+  ```
+
+* **Multi-field JSON**
+
+  ```bash
+  export USER_PROMPT_TEMPLATE="Given the row: {{row_json}}, return a JSON with keys cause, severity, owner. Be concise."
+  ```
+
+---
+
+## Direct API usage (without Excel)
+
+Yes, you can call the local API directly without Excel.
+This repo also includes lightweight CLI scripts (`chat_cli.py`, `chat_stream.py`) plus simple one-liners.
+
+### One-liners (non-streaming)
+
+* Direct to LM Studio (port 1234)
+* With or without API key
+* Via the proxy (port 8000)
+
+### cURL (non-streaming)
+
+* Direct to LM Studio
+* With API key
+* Via proxy
+
+### Minimal Python CLI
+
+* `chat_cli.py` — non-streaming, plain text replies
+* Usage examples:
+
+  * `python chat_cli.py --prompt "Explain the meaning of life in 5 bullets"`
+  * `python chat_cli.py --base http://localhost:8000 --prompt "..."`
+  * `python chat_cli.py --key lm-studio-key --prompt "..."`
+
+### Streaming example
+
+* `chat_stream.py` — prints token-by-token output
+* Usage examples:
+
+  * `python chat_stream.py --prompt "Explain the meaning of life in 5 bullets"`
+  * `python chat_stream.py --base http://localhost:8000 --prompt "..."`
+
+### Notes
+
+* **Model name:** With LM Studio, `"local"` generally maps to the loaded model. You can also use the model ID from `GET /v1/models`.
+* **Auth:** Only include `Authorization` if you enabled a key in LM Studio (or if your proxy requires it).
 
 ---
 
@@ -182,21 +260,6 @@ uvicorn lmstudio_openai_proxy:app --host 0.0.0.0 --port 8000
 $env:LMSTUDIO_API_BASE = "http://localhost:1234/v1"
 $env:LMSTUDIO_API_KEY = "lm-studio-key"
 uvicorn lmstudio_openai_proxy:app --host 0.0.0.0 --port 8000
-```
-
-### Test
-
-```bash
-curl http://localhost:8000/v1/models
-curl -s http://localhost:8000/v1/chat/completions \
-  -H "Content-Type: application/json" \
-  -d '{"model":"local","messages":[{"role":"user","content":"Hi"}]}'
-```
-
-Use with `excel_ai_analyzer.py`:
-
-```bash
-export LMSTUDIO_API_BASE="http://localhost:8000"
 ```
 
 ---
